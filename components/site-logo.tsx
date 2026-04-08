@@ -10,7 +10,7 @@ export default function SiteLogo() {
       {/* Icon mark */}
       <span
         className="flex items-center justify-center w-9 h-9 rounded-xl font-bold text-lg
-                   bg-accent text-accent-foreground
+                   bg-terracotta text-white
                    transition-transform duration-200 group-hover:scale-105"
         aria-hidden="true"
       >
@@ -18,7 +18,10 @@ export default function SiteLogo() {
       </span>
 
       {/* Wordmark */}
-      <span className="text-xl font-bold tracking-tight text-foreground">
+      <span
+        className="text-xl font-bold tracking-tight text-foreground"
+        style={{ fontFamily: "var(--font-bricolage)" }}
+      >
         Jobly
       </span>
     </Link>

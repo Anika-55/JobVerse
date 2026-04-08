@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Figtree, Geist } from "next/font/google";
+import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { ClerkProvider } from "@clerk/nextjs";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+import { Toaster } from "sonner";
 
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
@@ -20,9 +18,9 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "JobVerse — Where Talent Meets Opportunity",
+  title: "Jobly — Find jobs you actually want",
   description:
-    "Discover curated job opportunities from top companies. Apply smarter, hire faster — all on one beautifully simple platform.",
+    "Curated opportunities from top companies. Apply smarter, hire faster — all on one beautifully simple platform.",
   icons: {
     icon: "/convex.svg",
   },
@@ -34,12 +32,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
+    <html lang="en">
       <body
         className={`${bricolage.variable} ${figtree.variable} antialiased`}
       >
         <ClerkProvider dynamic>
-          <ConvexClientProvider>{children}</ConvexClientProvider>
+          <ConvexClientProvider>
+            {children}
+            <Toaster position="bottom-right" richColors />
+          </ConvexClientProvider>
         </ClerkProvider>
       </body>
     </html>
