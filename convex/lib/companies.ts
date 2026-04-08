@@ -1,67 +1,46 @@
-import { QueryCtx, MutationCtx } from "../_generated/server";
-import { Id } from "../_generated/dataModel";
 import { ConvexError } from "convex/values";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
 
-/**
- * Require that a company exists. Throws if not found.
- */
-export async function requireCompany(
-  ctx: QueryCtx | MutationCtx,
-  companyId: Id<"companies">
-) {
+type Ctx = QueryCtx | MutationCtx;
+type CompanyRole = Doc<"companyMembers">["role"];
+
+export async function requireCompany(companyId: Id<"companies">, ctx: Ctx) {
   const company = await ctx.db.get(companyId);
   if (!company) {
-    throw new ConvexError("Company not found");
+    throw new ConvexError("Company was not found.");
   }
   return company;
 }
 
-/**
- * Check that a membership record exists and has an "active" status.
- * Throws if not found or not active.
- */
 export async function requireActiveMembership(
-  ctx: QueryCtx | MutationCtx,
+  ctx: Ctx,
   companyId: Id<"companies">,
-  userId: Id<"users">
+  userId: Id<"users">,
 ) {
   const membership = await ctx.db
     .query("companyMembers")
     .withIndex("by_companyId_userId", (q) =>
-      q.eq("companyId", companyId).eq("userId", userId)
+      q.eq("companyId", companyId).eq("userId", userId),
     )
     .unique();
 
-  if (!membership) {
-    throw new ConvexError("You are not a member of this company");
-  }
-
-  if (membership.status !== "active") {
-    throw new ConvexError(
-      `Your membership is ${membership.status}. Contact an admin.`
-    );
+  if (!membership || membership.status !== "active") {
+    throw new ConvexError("You do not have access to this company workspace.");
   }
 
   return membership;
 }
 
-/**
- * Check that the user has one of the allowed roles in the company.
- * Throws if role is not in the allowed list.
- */
 export async function requireCompanyRole(
-  ctx: QueryCtx | MutationCtx,
+  ctx: Ctx,
   companyId: Id<"companies">,
   userId: Id<"users">,
-  allowedRoles: Array<"admin" | "recruiter" | "member">
+  allowedRoles: CompanyRole[],
 ) {
   const membership = await requireActiveMembership(ctx, companyId, userId);
-
   if (!allowedRoles.includes(membership.role)) {
-    throw new ConvexError(
-      `This action requires one of the following roles: ${allowedRoles.join(", ")}`
-    );
+    throw new ConvexError("Insufficient company role permissions.");
   }
-
   return membership;
 }

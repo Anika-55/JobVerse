@@ -1,72 +1,64 @@
-import { QueryCtx, MutationCtx } from "../_generated/server";
 import { ConvexError } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 
-/**
- * Require that the caller is authenticated. Throws if not.
- */
-export async function requireIdentity(ctx: QueryCtx | MutationCtx) {
+type Ctx = QueryCtx | MutationCtx;
+
+export async function requireIdentity(ctx: Ctx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
-    throw new ConvexError("Not authenticated");
+    throw new ConvexError("You must be signed in to perform this action.");
   }
   return identity;
 }
 
-/**
- * Look up the users record by the Clerk subject (clerkUserId).
- * Returns null if no record exists yet.
- */
-export async function getViewerUser(ctx: QueryCtx | MutationCtx) {
+export async function getViewerUser(ctx: Ctx): Promise<Doc<"users"> | null> {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) return null;
-
-  const user = await ctx.db
+  if (!identity) {
+    return null;
+  }
+  return await ctx.db
     .query("users")
     .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
     .unique();
-
-  return user;
 }
 
-/**
- * Look up the users record. Throws if not found.
- */
-export async function requireViewerUser(ctx: QueryCtx | MutationCtx) {
+export async function requireViewerUser(ctx: Ctx): Promise<Doc<"users">> {
   const user = await getViewerUser(ctx);
   if (!user) {
     throw new ConvexError(
-      "User record not found. Please try signing out and signing back in."
+      "User profile is not initialized yet. Complete profile setup first.",
     );
   }
   return user;
 }
 
-/**
- * Get or create the user record on-the-fly.
- * Useful when the webhook hasn't synced yet.
- */
-export async function getOrCreateViewerUser(ctx: MutationCtx) {
+export async function getOrCreateViewerUser(ctx: MutationCtx): Promise<Doc<"users">> {
   const identity = await requireIdentity(ctx);
-
-  // Try to find existing user
   const existing = await ctx.db
     .query("users")
     .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", identity.subject))
     .unique();
 
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
 
-  // Create on-the-fly
   const now = Date.now();
   const userId = await ctx.db.insert("users", {
     clerkUserId: identity.subject,
-    email: identity.email ?? "",
-    firstName: identity.givenName,
-    lastName: identity.familyName,
-    imageUrl: identity.pictureUrl,
+    email: identity.email ?? undefined,
+    firstName: identity.givenName ?? undefined,
+    lastName: identity.familyName ?? undefined,
+    imageUrl: identity.pictureUrl ?? undefined,
     createdAt: now,
     updatedAt: now,
   });
 
-  return (await ctx.db.get(userId))!;
+  const created = await ctx.db.get(userId);
+  if (!created) {
+    throw new ConvexError("Failed to create user record.");
+  }
+
+  return created;
 }
