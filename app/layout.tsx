@@ -36,7 +36,29 @@ export default function RootLayout({
       <body
         className={`${bricolage.variable} ${figtree.variable} antialiased`}
       >
-        <ClerkProvider dynamic>
+        <ClerkProvider
+          dynamic
+          appearance={{
+            layout: {
+              unsafe_disableDevelopmentModeWarnings: true,
+            },
+            variables: {
+              colorPrimary: "#e54d2e",
+              colorBackground: "var(--card)",
+              colorText: "var(--foreground)",
+              colorTextSecondary: "var(--muted-foreground)",
+              colorInputBackground: "var(--background)",
+              colorInputText: "var(--foreground)",
+              borderRadius: "var(--radius)",
+              fontFamily: "var(--font-figtree), system-ui, sans-serif",
+            },
+            elements: {
+              // Place Clerk styles in the "clerk" CSS layer so Tailwind
+              // utilities can override when needed
+              rootBox: "",
+            },
+          }}
+        >
           <ConvexClientProvider>
             {children}
             <Toaster position="bottom-right" richColors />
